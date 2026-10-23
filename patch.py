@@ -17,25 +17,17 @@ from __future__ import annotations
 
 import argparse
 import os
-import random
 import shutil
 import sys
 import tempfile
 import zipfile
 
-from patcher import ext4read, patches, sign, toolchain
+from patcher import ext4read, macgen, patches, sign, toolchain
 from patcher.payload import Payload
-
-UBIQUITI_OUI = "f4:92:bf"  # Ubiquiti Networks Inc. OUI (public IEEE registration)
 
 
 def log(msg: str) -> None:
     print(f"[*] {msg}", flush=True)
-
-
-def random_mac() -> str:
-    tail = ":".join(f"{random.randint(0, 255):02x}" for _ in range(3))
-    return f"{UBIQUITI_OUI}:{tail}"
 
 
 def extract_payload(zip_path: str, work: str) -> str:
@@ -56,8 +48,10 @@ def main() -> int:
     ap.add_argument("-o", "--output", default="IntercomViewer-portable.apk",
                     help="output APK path (default: ./IntercomViewer-portable.apk)")
     ap.add_argument("--mac", default=None,
-                    help="MAC to advertise (default: random Ubiquiti-OUI MAC). "
+                    help="MAC to advertise (default: random Ubiquiti-OUI MAC via genmac). "
                          "Use a unique one per device.")
+    ap.add_argument("--oui", default=None,
+                    help="restrict the generated MAC to this Ubiquiti OUI (AA:BB:CC)")
     ap.add_argument("--keystore", default=None,
                     help="signing keystore (default: ./portable.keystore, created if absent). "
                          "Reuse the same keystore to upgrade without a data wipe.")
@@ -83,7 +77,7 @@ def main() -> int:
 
     work = args.work or tempfile.mkdtemp(prefix="uvp-")
     os.makedirs(work, exist_ok=True)
-    mac = args.mac or random_mac()
+    mac = args.mac or macgen.generate(args.oui)
 
     try:
         payload_bin = extract_payload(args.firmware, work)
@@ -158,7 +152,7 @@ def main() -> int:
         log(f"done -> {args.output}")
         log(f"install with:  adb install -r -g {args.output}")
         print()
-        print("    This device advertises MAC", mac)
+        print(f"    This device advertises MAC {mac}  (id {macgen.device_id(mac)})")
         print("    Adopt it from UniFi Access on the SAME subnet/VLAN as the phone.")
         return 0
     finally:

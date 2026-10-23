@@ -63,10 +63,40 @@ Useful flags:
 | Flag | Meaning |
 |------|---------|
 | `--mac AA:BB:CC:DD:EE:FF` | Advertise a specific MAC (default: random Ubiquiti‑OUI). **Use a unique MAC per device.** |
+| `--oui AA:BB:CC` | Restrict the auto‑generated MAC to this Ubiquiti OUI. |
 | `--keystore path.keystore` | Reuse a keystore so later versions install over the old one **without wiping adoption** (`adb install -r`). A throwaway one is generated if omitted. |
 | `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
 | `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
+
+## Generating MAC addresses
+
+For a device to be adoptable, it must advertise a valid **unicast** MAC in a
+Ubiquiti-registered OUI so the controller recognizes it as Ubiquiti hardware.
+`patch.py` does this automatically (random Ubiquiti OUI), but you can also
+generate MACs yourself — handy when running the viewer on **several phones**
+(each needs a unique MAC):
+
+```bash
+python3 genmac.py                      # one random Ubiquiti-OUI MAC
+python3 genmac.py -n 5 --with-id       # five, with the viewer device id
+python3 genmac.py --oui FC:EC:DA       # restrict to a specific Ubiquiti OUI
+python3 genmac.py --sep none --upper   # bare hex (the device-id form)
+python3 genmac.py --list-ouis          # list the Ubiquiti OUIs it draws from
+```
+
+Then pin it when patching:
+
+```bash
+python3 patch.py fw.zip --mac $(python3 genmac.py)
+# or let patch.py pick one, optionally restricted to an OUI:
+python3 patch.py fw.zip --oui 24:5A:4C
+```
+
+The generator uses only **publicly registered Ubiquiti IEEE OUIs** and random
+lower bits; it keeps the unicast/globally-administered bits correct. The viewer
+derives its device id from the MAC (lowercase hex, no separators), which
+`--with-id` shows.
 
 ## Adopting into UniFi Access
 
@@ -98,7 +128,8 @@ cropping or distortion. The gradient backdrop is the clean compromise.
    loudly rather than producing a broken APK).
 4. The APK is rebuilt, zip‑aligned, and signed with apksigner.
 
-See [`patcher/`](patcher/) — `payload.py`, `ext4read.py`, `patches.py`, `sign.py`.
+See [`patcher/`](patcher/) — `payload.py`, `ext4read.py`, `patches.py`, `macgen.py`,
+`sign.py` — and [`genmac.py`](genmac.py) for the standalone MAC generator.
 
 ## Compatibility
 
