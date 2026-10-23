@@ -37,11 +37,14 @@ baked into the tool.
 ## Requirements
 
 - **Python 3.9+** and `pip install -r requirements.txt` (one dep: a pure‑Python ext4 reader)
-- **[apktool](https://apktool.org/)** on your `PATH` (or set `APKTOOL_JAR`)
-- **Android SDK build‑tools** (`apksigner`, `zipalign`) — auto‑detected under the
-  standard SDK locations, or set `ANDROID_BUILD_TOOLS=/path/to/build-tools/<ver>`
-- **Java (JDK 17+)** on your `PATH` (for apktool + `keytool`)
-- An **arm64 (`arm64-v8a`) device on Android 9+** to install the result
+- An **arm64 (`arm64-v8a`) device on Android 9+** to install the result, plus **adb**
+- A **JDK**, **apktool**, and Android **build‑tools** (`apksigner` + `zipalign`) —
+  **or just run `python3 bootstrap.py`**, which downloads all three into a local
+  `tools/` folder (recommended on Windows — no system install needed).
+
+If you'd rather install the tools yourself, they're found on `PATH` first (so
+`apt`/`brew`/`choco` installs work) and then under the Android SDK; override with
+`APKTOOL_JAR` and `ANDROID_BUILD_TOOLS` if needed.
 
 Per-OS install commands (Debian/Ubuntu, Windows, macOS) are in the
 **[Quick Guide](QUICKSTART.md)**. Tools are found on `PATH` first (so

@@ -44,6 +44,23 @@ def _replace_once(text: str, old: str, new: str, what: str) -> str:
     return text.replace(old, new, 1)
 
 
+def _edit_method(path: str, method_name: str, old: str, new: str, what: str) -> None:
+    """Replace `old` with `new` inside a single smali method body (robust to the
+    surrounding formatting/line-directive differences between apktool versions)."""
+    text = _read(path)
+    m = re.search(r"\.method[^\n]*\b" + re.escape(method_name) + r"\(", text)
+    if not m:
+        raise PatchError(f"method not found: {what}")
+    end = text.find("\n.end method", m.start())
+    if end == -1:
+        raise PatchError(f"malformed method: {what}")
+    body = text[m.start():end]
+    if old not in body:
+        raise PatchError(f"anchor not found in method: {what}")
+    body = body.replace(old, new, 1)
+    _write(path, text[:m.start()] + body + text[end:])
+
+
 # --- 1. Manifest: make it installable as a normal app ----------------------
 
 def patch_manifest(decoded: str) -> None:
@@ -192,26 +209,22 @@ def patch_gradient(decoded: str) -> None:
     os.makedirs(draw_dir, exist_ok=True)
     _write(os.path.join(draw_dir, "viewport_gradient.xml"), GRADIENT_DRAWABLE)
 
-    # set it as the root layout background
+    # set it as the root layout background (attribute-order independent)
     layout = os.path.join(decoded, "res", "layout", "layout_main.xml")
     text = _read(layout)
     if "viewport_gradient" not in text:
-        text = _replace_once(
-            text,
-            '<FrameLayout android:layout_width="match_parent" android:layout_height="match_parent"',
-            '<FrameLayout android:layout_width="match_parent" android:layout_height="match_parent" '
-            'android:background="@drawable/viewport_gradient"',
-            "layout_main FrameLayout",
+        new_text, n = re.subn(
+            r"(<FrameLayout\b)",
+            r'\1 android:background="@drawable/viewport_gradient"',
+            text, count=1,
         )
-        _write(layout, text)
+        if n == 0:
+            raise PatchError("anchor not found: layout_main FrameLayout")
+        _write(layout, new_text)
 
-    # make the root Surface transparent so the gradient shows through
+    # make the root Surface transparent so the gradient shows through.
+    # In MainActivity.Z0 the Surface color arg is copied with `move-wide v5, v6`;
+    # setting it to 0L = Color.Transparent. Scoped to the method so it's robust.
     main = _find_smali(decoded, os.path.join("com", "ui", "da", "viewer", "app", "MainActivity.smali"))
-    text = _read(main)
-    text = _replace_once(
-        text,
-        "    move-wide v5, v6\n\n    .line 94\n    const-wide/16 v7, 0x0",
-        "    const-wide/16 v5, 0x0\n\n    .line 94\n    const-wide/16 v7, 0x0",
-        "MainActivity.Z0 Surface color",
-    )
-    _write(main, text)
+    _edit_method(main, "Z0", "move-wide v5, v6", "const-wide/16 v5, 0x0",
+                 "MainActivity.Z0 Surface color")

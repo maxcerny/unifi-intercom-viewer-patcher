@@ -27,28 +27,26 @@ sudo apt install -y python3 python3-pip python3-venv default-jdk apktool apksign
 > `sdkmanager "build-tools;34.0.0"`, then
 > `export ANDROID_BUILD_TOOLS=$HOME/Android/Sdk/build-tools/34.0.0`.
 
-### Windows (PowerShell)
+### Windows (PowerShell) — the easy way
 
-Easiest with [winget](https://learn.microsoft.com/windows/package-manager/) (or Chocolatey):
+You only need **Python** and **adb**. The patcher can download the rest
+(a portable JDK, Android build-tools, and apktool) for you.
 
 ```powershell
 winget install -e --id Python.Python.3.12
-winget install -e --id Microsoft.OpenJDK.17
 winget install -e --id Google.PlatformTools      # adb
-# apktool: with Chocolatey ->  choco install apktool
-#          or download apktool.jar and:  setx APKTOOL_JAR C:\tools\apktool.jar
 ```
 
-Android **build-tools** (`apksigner.bat` + `zipalign.exe`): install **Android
-Studio** (SDK Manager → SDK Tools → “Android SDK Build-Tools”), or the
-standalone command-line tools + `sdkmanager "build-tools;34.0.0"`. The patcher
-auto-detects `%LOCALAPPDATA%\Android\Sdk`. If you installed them elsewhere:
+Then, after cloning (step 2), run the bootstrapper once — it drops the required
+binaries into a local `tools\` folder, no system install needed:
 
 ```powershell
-setx ANDROID_BUILD_TOOLS "C:\Android\build-tools\34.0.0"
+py bootstrap.py
 ```
 
-(Open a new terminal after `setx` so the variables take effect.)
+> That's it — skip the JDK / Android Studio / apktool installs. The binaries live
+> in `tools\` (git-ignored) and are used automatically. `bootstrap.py` works on
+> Linux and macOS too if you'd rather not install the tools system-wide.
 
 ### macOS
 
@@ -79,6 +77,15 @@ pip install -r requirements.txt
 ```powershell
 py -m venv .venv ; .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+```
+
+**Don't want to install the JDK / Android tools system-wide?** Run the
+bootstrapper — it downloads a portable JDK, Android build-tools, and apktool
+into a local `tools/` folder (required for the easy Windows path above; optional
+elsewhere):
+
+```bash
+python3 bootstrap.py        # Windows: py bootstrap.py
 ```
 
 ---

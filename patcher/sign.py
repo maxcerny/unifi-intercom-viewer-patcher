@@ -21,16 +21,16 @@ def ensure_keystore(path: str, storepass: str = "android") -> str:
 
 
 def align_and_sign(unsigned: str, out: str, keystore: str, storepass: str = "android") -> None:
-    zipalign = toolchain.find_tool("zipalign")
-    apksigner = toolchain.find_tool("apksigner")
+    zipalign = toolchain.find_zipalign()
+    apksigner = toolchain.find_apksigner()  # command prefix (list)
     aligned = unsigned + ".aligned"
     toolchain.run([zipalign, "-f", "-p", "4", unsigned, aligned])
-    toolchain.run([
-        apksigner, "sign",
+    toolchain.run(apksigner + [
+        "sign",
         "--ks", keystore, "--ks-pass", f"pass:{storepass}", "--key-pass", f"pass:{storepass}",
         "--out", out, aligned,
     ])
-    toolchain.run([apksigner, "verify", out])
+    toolchain.run(apksigner + ["verify", out])
     try:
         os.remove(aligned)
     except OSError:

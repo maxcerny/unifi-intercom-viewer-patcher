@@ -7,6 +7,9 @@ payload.bin
 *.keystore
 *.jks
 
+# Downloaded binaries (fetched by bootstrap.py) — never committed
+tools/
+
 # Work / build artifacts
 uvp-*/
 work/
