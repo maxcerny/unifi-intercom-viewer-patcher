@@ -73,7 +73,8 @@ def main() -> int:
 
     # fail fast if the toolchain is missing
     apktool = toolchain.find_apktool()
-    toolchain.find_build_tools()
+    toolchain.find_tool("zipalign")
+    toolchain.find_tool("apksigner")
 
     work = args.work or tempfile.mkdtemp(prefix="uvp-")
     os.makedirs(work, exist_ok=True)

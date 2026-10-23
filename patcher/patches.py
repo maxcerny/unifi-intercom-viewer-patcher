@@ -27,12 +27,14 @@ def _find_smali(decoded: str, rel: str) -> str:
 
 
 def _read(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as f:
+    # newline="" disables translation so we preserve the file's exact line
+    # endings (apktool emits "\n"); this keeps the edits identical on Windows.
+    with open(path, "r", encoding="utf-8", newline="") as f:
         return f.read()
 
 
 def _write(path: str, text: str) -> None:
-    with open(path, "w", encoding="utf-8") as f:
+    with open(path, "w", encoding="utf-8", newline="") as f:
         f.write(text)
 
 

@@ -7,6 +7,9 @@ old phone or tablet as an Intercom Viewer instead of the dedicated hardware.
 You point this tool at the **official firmware OTA zip** (which you supply), and
 it extracts the viewer app, patches it, and re-signs it into an installable APK.
 
+Runs on **Debian/Linux, Windows, and macOS**.
+**👉 New here? Follow the [Quick Guide](QUICKSTART.md).**
+
 > [!IMPORTANT]
 > **This repository contains no Ubiquiti code or binaries, and distributes none.**
 > It is a *transformer*: it operates on firmware **you already possess**. You must
@@ -40,12 +43,10 @@ baked into the tool.
 - **Java (JDK 17+)** on your `PATH` (for apktool + `keytool`)
 - An **arm64 (`arm64-v8a`) device on Android 9+** to install the result
 
-macOS quick setup:
-```bash
-brew install apktool openjdk
-# build-tools come with Android Studio, or: sdkmanager "build-tools;36.0.0"
-pip install -r requirements.txt
-```
+Per-OS install commands (Debian/Ubuntu, Windows, macOS) are in the
+**[Quick Guide](QUICKSTART.md)**. Tools are found on `PATH` first (so
+`apt`/`brew`/`choco` installs just work) and then under the Android SDK; override
+with `APKTOOL_JAR` and `ANDROID_BUILD_TOOLS` if needed.
 
 ## Usage
 

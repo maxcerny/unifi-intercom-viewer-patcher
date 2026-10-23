@@ -9,9 +9,7 @@ from . import toolchain
 def ensure_keystore(path: str, storepass: str = "android") -> str:
     if os.path.exists(path):
         return path
-    keytool = os.path.join(os.path.dirname(toolchain.find_java()), "keytool")
-    if not os.path.exists(keytool):
-        keytool = "keytool"
+    keytool = toolchain.find_keytool()
     toolchain.run([
         keytool, "-genkeypair", "-v",
         "-keystore", path, "-alias", "key",
@@ -23,9 +21,8 @@ def ensure_keystore(path: str, storepass: str = "android") -> str:
 
 
 def align_and_sign(unsigned: str, out: str, keystore: str, storepass: str = "android") -> None:
-    bt = toolchain.find_build_tools()
-    zipalign = os.path.join(bt, "zipalign")
-    apksigner = os.path.join(bt, "apksigner")
+    zipalign = toolchain.find_tool("zipalign")
+    apksigner = toolchain.find_tool("apksigner")
     aligned = unsigned + ".aligned"
     toolchain.run([zipalign, "-f", "-p", "4", unsigned, aligned])
     toolchain.run([
