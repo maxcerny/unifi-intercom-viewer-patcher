@@ -1,0 +1,28 @@
+# Never commit vendor firmware, extracted images, or built/patched APKs.
+*.zip
+*.apk
+*.img
+*.bin
+payload.bin
+*.keystore
+*.jks
+
+# Work / build artifacts
+uvp-*/
+work/
+*.aligned
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

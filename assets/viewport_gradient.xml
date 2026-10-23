@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original gradient drawable injected by this patcher (not vendor code). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="#2A3A4D"
+        android:centerColor="#141C26"
+        android:endColor="#05080C" />
+</shape>

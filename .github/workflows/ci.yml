@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ "3.9", "3.12" ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Byte-compile
+        run: python -m compileall -q patch.py patcher
+      - name: Import check
+        run: python -c "import patcher.payload, patcher.ext4read, patcher.patches, patcher.sign, patcher.toolchain"

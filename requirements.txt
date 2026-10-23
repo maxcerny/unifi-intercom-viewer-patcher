@@ -1,0 +1,3 @@
+# Only dependency: a pure-Python ext4 reader (to pull the APK out of system.img).
+# The payload.bin parser and all patch logic use the standard library only.
+ext4>=1.4.0

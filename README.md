@@ -1,0 +1,117 @@
+# UniFi Intercom Viewer — Portable Patcher
+
+Turn the **UniFi Access Intercom Viewer** firmware into an APK that installs,
+runs, and adopts on an ordinary **non-rooted Android phone** — so you can use an
+old phone or tablet as an Intercom Viewer instead of the dedicated hardware.
+
+You point this tool at the **official firmware OTA zip** (which you supply), and
+it extracts the viewer app, patches it, and re-signs it into an installable APK.
+
+> [!IMPORTANT]
+> **This repository contains no Ubiquiti code or binaries, and distributes none.**
+> It is a *transformer*: it operates on firmware **you already possess**. You must
+> download the firmware yourself and you are responsible for your right to use it.
+> This project is **not affiliated with, authorized, or endorsed by Ubiquiti Inc.**
+> UniFi, UniFi Access, and the firmware remain the property of Ubiquiti Inc.
+> No firmware or patched APK is published here — only the patcher.
+
+---
+
+## What it does
+
+| Area | Patch |
+|------|-------|
+| **Installable** | Removes `sharedUserId="android.uid.system"` and `persistent="true"` so it installs as a normal app (no root, no platform key), then re-signs it. |
+| **Adoptable** | On non-Viewpoint hardware the app advertises a blank identity and listens for UniFi discovery only on `eth0`. The patch advertises a valid Ubiquiti‑OUI MAC + the real firmware id/version (read from *your* firmware), switches discovery to `wlan0`, and holds a Wi‑Fi `MulticastLock` so the controller's discovery probe is actually received. |
+| **Fullscreen** | Hides the status/navigation bars (immersive, edge‑to‑edge). |
+| **Stays awake** | Screen never sleeps/locks while the viewer is open. |
+| **Gradient backdrop** | Fills the letterbox around the live view with a dark gradient instead of black bars (the live view keeps its true aspect). |
+
+All injected code is ordinary Android framework code written for this project.
+Identity values come from your firmware at run time — nothing vendor‑specific is
+baked into the tool.
+
+## Requirements
+
+- **Python 3.9+** and `pip install -r requirements.txt` (one dep: a pure‑Python ext4 reader)
+- **[apktool](https://apktool.org/)** on your `PATH` (or set `APKTOOL_JAR`)
+- **Android SDK build‑tools** (`apksigner`, `zipalign`) — auto‑detected under the
+  standard SDK locations, or set `ANDROID_BUILD_TOOLS=/path/to/build-tools/<ver>`
+- **Java (JDK 17+)** on your `PATH` (for apktool + `keytool`)
+- An **arm64 (`arm64-v8a`) device on Android 9+** to install the result
+
+macOS quick setup:
+```bash
+brew install apktool openjdk
+# build-tools come with Android Studio, or: sdkmanager "build-tools;36.0.0"
+pip install -r requirements.txt
+```
+
+## Usage
+
+```bash
+python3 patch.py /path/to/IntercomViewerFirmware.zip -o IntercomViewer-portable.apk
+```
+
+Then install on a phone with USB debugging enabled:
+```bash
+adb install -r -g IntercomViewer-portable.apk
+```
+
+Useful flags:
+
+| Flag | Meaning |
+|------|---------|
+| `--mac AA:BB:CC:DD:EE:FF` | Advertise a specific MAC (default: random Ubiquiti‑OUI). **Use a unique MAC per device.** |
+| `--keystore path.keystore` | Reuse a keystore so later versions install over the old one **without wiping adoption** (`adb install -r`). A throwaway one is generated if omitted. |
+| `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
+| `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
+| `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
+
+## Adopting into UniFi Access
+
+After install, the app shows **“Ready to Adopt.”** Adopt it from the UniFi Access
+app or `unifi.ui.com` **on the same subnet / VLAN as the phone** — UniFi device
+discovery is subnet‑local multicast (`233.89.188.1:10001`) and will not cross
+VLANs or survive Wi‑Fi client isolation.
+
+Whether adoption *completes* can depend on controller/cloud‑side validation that
+isn't in the app; a self‑hosted console on the same L2 is the most reliable case.
+
+## Known limitation
+
+The live screen renders its UI (clock, camera, lock) as a **16:9 block centered
+vertically**, designed for the Viewpoint's screen. On a taller phone those
+elements sit inside that block (the gradient fills around it) rather than at the
+true screen edges. The app is heavily R8‑obfuscated and this layout could not be
+reliably repositioned; a portrait camera also can't fill a taller screen without
+cropping or distortion. The gradient backdrop is the clean compromise.
+
+## How it works
+
+1. `payload.bin` is read from the OTA zip and the `system` partition image is
+   reconstructed from its full‑OTA operations (pure‑Python CrAU parser — no
+   external `payload-dumper`).
+2. The viewer APK and `build.prop` are read out of the ext4 image (no mounting).
+3. The APK is decoded with apktool; the patches above are applied to the smali /
+   manifest / resources, validated with hard anchors (a firmware mismatch fails
+   loudly rather than producing a broken APK).
+4. The APK is rebuilt, zip‑aligned, and signed with apksigner.
+
+See [`patcher/`](patcher/) — `payload.py`, `ext4read.py`, `patches.py`, `sign.py`.
+
+## Compatibility
+
+Written against firmware **`ua-intercom-viewer` v1.5.32** (Android 9 base). Other
+firmware versions may rename obfuscated classes; the patcher will stop with a
+clear “anchor not found” error if a target has moved.
+
+## Contributing
+
+Issues and PRs welcome — especially anchor updates for new firmware versions and
+a proper responsive‑layout fix. Do **not** attach firmware or APKs to issues.
+
+## License
+
+[MIT](LICENSE) for the patcher code. Not for any Ubiquiti software, which this
+project neither includes nor distributes.
