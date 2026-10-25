@@ -64,6 +64,9 @@ def main() -> int:
                     help="skip the discovery/adoption identity patches")
     ap.add_argument("--no-optimize", action="store_true",
                     help="skip fullscreen / keep-screen-on / gradient patches")
+    ap.add_argument("--sleep", choices=patches.SLEEP_MODES, default="screensaver",
+                    help="after the app's idle timeout: 'screensaver' = black overlay, "
+                         "tap to wake; 'never' = screen always on (default: screensaver)")
     ap.add_argument("--keep-work", action="store_true", help="keep the temp work dir")
     ap.add_argument("--work", default=None, help="work directory (default: a temp dir)")
     args = ap.parse_args()
@@ -137,8 +140,9 @@ def main() -> int:
 
         if not args.no_optimize:
             patches.patch_screen(decoded)
+            patches.patch_sleep(decoded, args.sleep)
             patches.patch_gradient(decoded)
-            log("  + fullscreen + keep-screen-on + gradient background")
+            log(f"  + fullscreen + sleep={args.sleep} + gradient background")
 
         log("rebuilding APK (apktool)")
         unsigned = os.path.join(work, "viewer-unsigned.apk")
