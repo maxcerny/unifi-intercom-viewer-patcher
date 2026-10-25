@@ -28,7 +28,8 @@ Runs on **Debian/Linux, Windows, and macOS**.
 | **Adoptable** | On non-Viewpoint hardware the app advertises a blank identity and listens for UniFi discovery only on `eth0`. The patch advertises a valid Ubiquiti‑OUI MAC + the real firmware id/version (read from *your* firmware), switches discovery to `wlan0`, and holds a Wi‑Fi `MulticastLock` so the controller's discovery probe is actually received. |
 | **Fullscreen** | Hides the status/navigation bars (immersive, edge‑to‑edge). |
 | **Stays awake** | Screen never sleeps/locks while the viewer is open. |
-| **Gradient backdrop** | Fills the letterbox around the live view with a dark gradient instead of black bars (the live view keeps its true aspect). |
+| **Full-screen layout** | Removes the 9:16 letterbox the app applies for the Viewpoint's screen, so the UI and the call view fill taller phone screens. |
+| **Gradient backdrop** | With `--letterbox`, fills the bands around the 9:16 block with a dark gradient instead of black bars. |
 
 All injected code is ordinary Android framework code written for this project.
 Identity values come from your firmware at run time — nothing vendor‑specific is
@@ -71,6 +72,7 @@ Useful flags:
 | `--keystore path.keystore` | Reuse a keystore so later versions install over the old one **without wiping adoption** (`adb install -r`). A throwaway one is generated if omitted. |
 | `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
 | `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
+| `--letterbox` | Keep the original centered 9:16 layout instead of filling the screen (see [Known limitation](#known-limitation)). |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
 
 ## Generating MAC addresses
@@ -114,12 +116,15 @@ isn't in the app; a self‑hosted console on the same L2 is the most reliable ca
 
 ## Known limitation
 
-The live screen renders its UI (clock, camera, lock) as a **16:9 block centered
-vertically**, designed for the Viewpoint's screen. On a taller phone those
-elements sit inside that block (the gradient fills around it) rather than at the
-true screen edges. The app is heavily R8‑obfuscated and this layout could not be
-reliably repositioned; a portrait camera also can't fill a taller screen without
-cropping or distortion. The gradient backdrop is the clean compromise.
+The app was designed for the Viewpoint's screen and renders its UI (clock, door
+card, unlock button, call view) as a **9:16 block centered vertically**. The
+letterbox comes from `MainActivity.x1`, which pads both the Compose view and the
+call view by `(height - width / 9 * 16) / 2` at the top and bottom.
+
+The patcher forces that padding to 0, so on a taller phone the UI reaches the
+real screen edges. Tested on a 20:9 phone, including the live call view during a
+doorbell ring. Pass `--letterbox` to keep the original centered 9:16 block; the
+gradient backdrop then fills the bands around it.
 
 ## How it works
 

@@ -228,3 +228,15 @@ def patch_gradient(decoded: str) -> None:
     main = _find_smali(decoded, os.path.join("com", "ui", "da", "viewer", "app", "MainActivity.smali"))
     _edit_method(main, "Z0", "move-wide v5, v6", "const-wide/16 v5, 0x0",
                  "MainActivity.Z0 Surface color")
+
+
+# --- 5. Fill the whole screen instead of a centered 9:16 block -------------
+
+def patch_fullscreen_layout(decoded: str) -> None:
+    # MainActivity.x1 letterboxes the UI to the Viewpoint's 9:16 screen:
+    #   pad = (displayHeight - displayWidth / 9 * 16) / 2
+    #   composeView.setPadding(0, pad, 0, pad); rtcLayout.setPadding(0, pad, 0, pad)
+    # Forcing pad to 0 lets both the Compose UI and the call view fill the screen.
+    main = _find_smali(decoded, os.path.join("com", "ui", "da", "viewer", "app", "MainActivity.smali"))
+    _edit_method(main, "x1", "div-int/lit8 v1, v1, 0x2", "const/4 v1, 0x0",
+                 "MainActivity.x1 letterbox padding")
