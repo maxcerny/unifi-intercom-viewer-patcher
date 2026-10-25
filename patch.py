@@ -64,6 +64,8 @@ def main() -> int:
                     help="skip the discovery/adoption identity patches")
     ap.add_argument("--no-optimize", action="store_true",
                     help="skip fullscreen / keep-screen-on / gradient patches")
+    ap.add_argument("--black-backdrop", action="store_true",
+                    help="fill the letterbox with pure black instead of the gradient (AMOLED)")
     ap.add_argument("--keep-work", action="store_true", help="keep the temp work dir")
     ap.add_argument("--work", default=None, help="work directory (default: a temp dir)")
     args = ap.parse_args()
@@ -137,8 +139,9 @@ def main() -> int:
 
         if not args.no_optimize:
             patches.patch_screen(decoded)
-            patches.patch_gradient(decoded)
-            log("  + fullscreen + keep-screen-on + gradient background")
+            patches.patch_gradient(decoded, black=args.black_backdrop)
+            backdrop = "black" if args.black_backdrop else "gradient"
+            log(f"  + fullscreen + keep-screen-on + {backdrop} background")
 
         log("rebuilding APK (apktool)")
         unsigned = os.path.join(work, "viewer-unsigned.apk")
