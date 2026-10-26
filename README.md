@@ -27,7 +27,7 @@ Runs on **Debian/Linux, Windows, and macOS**.
 | **Installable** | Removes `sharedUserId="android.uid.system"` and `persistent="true"` so it installs as a normal app (no root, no platform key), then re-signs it. |
 | **Adoptable** | On non-Viewpoint hardware the app advertises a blank identity and listens for UniFi discovery only on `eth0`. The patch advertises a valid Ubiquiti‑OUI MAC + the real firmware id/version (read from *your* firmware), switches discovery to `wlan0`, and holds a Wi‑Fi `MulticastLock` so the controller's discovery probe is actually received. |
 | **Fullscreen** | Hides the status/navigation bars (immersive, edge‑to‑edge). |
-| **Screensaver** | After the app's idle timeout (default 60 s, set from the controller) the screen goes black at minimum brightness, like the Viewpoint's screen-off; a tap or a ring wakes it. `--sleep never` keeps the screen always on. See [Sleep](#sleep). |
+| **Screensaver** | After the app's idle timeout (default 60 s, set from the controller) the screen goes black at minimum brightness, like the Viewpoint's screen-off; a tap or a ring wakes it. Toggle it on/off from a **"Screensaver" switch added to Settings → Display & Brightness**. `--sleep never` omits it entirely. See [Sleep](#sleep). |
 | **Full-screen layout** | Removes the 9:16 letterbox the app applies for the Viewpoint's screen, so the UI and the call view fill taller phone screens. |
 | **Backdrop** | Solid black by default (AMOLED-friendly), a dark gradient (`--gradient`), or none (`--no-gradient`). With `--letterbox` it fills the bands around the 9:16 block. |
 

@@ -17,6 +17,8 @@
 # static fields
 .field private static sActivity:Landroid/app/Activity;
 
+.field private static sEnabled:Z
+
 .field private static sAsleep:Z
 
 .field private static sBusy:Z
@@ -49,6 +51,62 @@
 
     sput v0, Lcom/uvp/Screensaver;->sTimeoutMs:I
 
+    const/4 v0, 0x1
+
+    sput-boolean v0, Lcom/uvp/Screensaver;->sEnabled:Z
+
+    return-void
+.end method
+
+.method public static isEnabled()Z
+    .locals 1
+
+    sget-boolean v0, Lcom/uvp/Screensaver;->sEnabled:Z
+
+    return v0
+.end method
+
+.method public static setEnabled(Z)V
+    .locals 3
+
+    sput-boolean p0, Lcom/uvp/Screensaver;->sEnabled:Z
+
+    # persist
+    sget-object v0, Lcom/uvp/Screensaver;->sActivity:Landroid/app/Activity;
+
+    if-eqz v0, :skip_persist
+
+    const-string v1, "uvp_prefs"
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, v1, v2}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    const-string v1, "ss_enabled"
+
+    invoke-interface {v0, v1, p0}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+
+    move-result-object v0
+
+    invoke-interface {v0}, Landroid/content/SharedPreferences$Editor;->apply()V
+
+    :skip_persist
+    if-eqz p0, :disabled
+
+    invoke-static {}, Lcom/uvp/Screensaver;->schedule()V
+
+    goto :done
+
+    :disabled
+    invoke-static {}, Lcom/uvp/Screensaver;->wake()V
+
+    :done
     return-void
 .end method
 
@@ -134,6 +192,25 @@
 
     invoke-virtual {v1, v0, v2}, Landroid/view/ViewGroup;->addView(Landroid/view/View;Landroid/view/ViewGroup$LayoutParams;)V
 
+    # load the saved screensaver-enabled flag (default true)
+    const-string v0, "uvp_prefs"
+
+    const/4 v1, 0x0
+
+    invoke-virtual {p0, v0, v1}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+
+    move-result-object v0
+
+    const-string v1, "ss_enabled"
+
+    const/4 v2, 0x1
+
+    invoke-interface {v0, v1, v2}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+
+    move-result v0
+
+    sput-boolean v0, Lcom/uvp/Screensaver;->sEnabled:Z
+
     invoke-static {}, Lcom/uvp/Screensaver;->schedule()V
 
     return-void
@@ -216,6 +293,10 @@
     sget-object v1, Lcom/uvp/Screensaver;->sSleep:Lcom/uvp/Screensaver;
 
     invoke-virtual {v0, v1}, Landroid/os/Handler;->removeCallbacks(Ljava/lang/Runnable;)V
+
+    sget-boolean v2, Lcom/uvp/Screensaver;->sEnabled:Z
+
+    if-eqz v2, :done
 
     sget-boolean v2, Lcom/uvp/Screensaver;->sBusy:Z
 

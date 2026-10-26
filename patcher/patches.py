@@ -345,3 +345,40 @@ def patch_sleep(decoded: str, mode: str) -> None:
     _inject_method_start(rtc, "W(Z)V",
                          "    invoke-static {p1}, Lcom/uvp/Screensaver;->setBusy(Z)V\n",
                          "RtcViewContainer.W call view visibility")
+
+    # add a "Screensaver" on/off switch to the Display & Brightness settings
+    smali_dir = os.path.dirname(SCREENSAVER_SMALI)
+    for extra in ("SsSwitch.smali", "SsToggle.smali"):
+        _write(os.path.join(smali_root, "com", "uvp", extra),
+               _read(os.path.join(smali_dir, extra)))
+    _inject_screensaver_toggle(decoded)
+
+
+def _inject_screensaver_toggle(decoded: str) -> None:
+    """Render com.uvp.SsSwitch.Row (a 'Screensaver' switch) right after the app's
+    existing 'Location Thumbnails' switch in the Display & Brightness screen.
+    The switch uses the app's own reusable switch-row composable (d0.r)."""
+    ui_settings = os.path.join("com", "ui", "da", "viewer", "app", "ui", "settings")
+    disp = None
+    for cand in sorted(glob.glob(os.path.join(decoded, "smali*", ui_settings, "*.smali"))):
+        if "settings_display_thumbnails_switch" in _read(cand):
+            disp = cand
+            break
+    if disp is None:
+        raise PatchError("Display settings screen (thumbnails switch) not found")
+    text = _read(disp)
+    # Inject right after the screen's title bar (always rendered, at the column's
+    # top level) — the thumbnails switch sits inside a conditional branch, so it
+    # isn't a reliable anchor. qe.f0.K(title, onBack, composer, I, I).
+    m = re.search(
+        r"invoke-static \{v\d+, v\d+, (v\d+), v\d+, v\d+\}, "
+        r"Lqe/f0;->K\(Ljava/lang/String;Lfh/a;Landroidx/compose/runtime/k;II\)V",
+        text,
+    )
+    if not m:
+        raise PatchError("Display screen title bar (qe.f0.K) not found")
+    composer = m.group(1)  # the Composer register
+    inject = (f"\n\n    invoke-static/range {{{composer} .. {composer}}}, "
+              f"Lcom/uvp/SsSwitch;->Row(Landroidx/compose/runtime/k;)V")
+    at = m.end()
+    _write(disp, text[:at] + inject + text[at:])
