@@ -27,10 +27,12 @@ def _find_smali(decoded: str, rel: str) -> str:
 
 
 def _read(path: str) -> str:
-    # newline="" disables translation so we preserve the file's exact line
-    # endings (apktool emits "\n"); this keeps the edits identical on Windows.
+    # Normalize line endings to "\n" so our anchors match regardless of how
+    # apktool wrote the file — on Windows it emits CRLF ("\r\n"), which otherwise
+    # breaks the "\n"-based method/anchor matching. Edited files are written
+    # back as "\n", which smali/aapt2 assemble fine on every platform.
     with open(path, "r", encoding="utf-8", newline="") as f:
-        return f.read()
+        return f.read().replace("\r\n", "\n").replace("\r", "\n")
 
 
 def _write(path: str, text: str) -> None:
