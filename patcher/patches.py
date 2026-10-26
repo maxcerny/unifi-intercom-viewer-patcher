@@ -204,12 +204,20 @@ GRADIENT_DRAWABLE = """<?xml version="1.0" encoding="utf-8"?>
 </shape>
 """
 
+# pure black: AMOLED pixels stay off around the live view
+BLACK_DRAWABLE = """<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#000000" />
+</shape>
+"""
 
-def patch_gradient(decoded: str) -> None:
-    # drop in the gradient drawable
+
+def patch_gradient(decoded: str, black: bool = False) -> None:
+    # drop in the backdrop drawable
     draw_dir = os.path.join(decoded, "res", "drawable")
     os.makedirs(draw_dir, exist_ok=True)
-    _write(os.path.join(draw_dir, "viewport_gradient.xml"), GRADIENT_DRAWABLE)
+    _write(os.path.join(draw_dir, "viewport_gradient.xml"),
+           BLACK_DRAWABLE if black else GRADIENT_DRAWABLE)
 
     # set it as the root layout background (attribute-order independent)
     layout = os.path.join(decoded, "res", "layout", "layout_main.xml")

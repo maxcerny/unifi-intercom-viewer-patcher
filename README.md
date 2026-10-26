@@ -71,6 +71,7 @@ Useful flags:
 | `--keystore path.keystore` | Reuse a keystore so later versions install over the old one **without wiping adoption** (`adb install -r`). A throwaway one is generated if omitted. |
 | `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
 | `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
+| `--black-backdrop` | Fill the letterbox with pure black instead of the gradient (pixels stay off on AMOLED). |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
 
 ## Generating MAC addresses
