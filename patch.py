@@ -70,6 +70,9 @@ def main() -> int:
                     help="force the solid-black backdrop (this is the default)")
     ap.add_argument("--no-gradient", action="store_true",
                     help="don't apply any backdrop; leave the app's original (black) background")
+    ap.add_argument("--sleep", choices=patches.SLEEP_MODES, default="screensaver",
+                    help="after the app's idle timeout: 'screensaver' = black overlay, "
+                         "tap to wake; 'never' = screen always on (default: screensaver)")
     ap.add_argument("--letterbox", action="store_true",
                     help="keep the original centered 9:16 layout instead of filling the screen")
     ap.add_argument("--keep-work", action="store_true", help="keep the temp work dir")
@@ -145,13 +148,14 @@ def main() -> int:
 
         if not args.no_optimize:
             patches.patch_screen(decoded)
+            patches.patch_sleep(decoded, args.sleep)
             if args.no_gradient:
-                log("  + fullscreen + keep-screen-on (no backdrop)")
+                log(f"  + fullscreen + sleep={args.sleep} (no backdrop)")
             else:
                 use_gradient = args.gradient and not args.black_backdrop
                 patches.patch_gradient(decoded, black=not use_gradient)
                 backdrop = "gradient" if use_gradient else "black"
-                log(f"  + fullscreen + keep-screen-on + {backdrop} background")
+                log(f"  + fullscreen + sleep={args.sleep} + {backdrop} background")
 
         if not args.letterbox:
             patches.patch_fullscreen_layout(decoded)

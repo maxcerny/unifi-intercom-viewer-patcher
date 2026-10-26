@@ -27,9 +27,9 @@ Runs on **Debian/Linux, Windows, and macOS**.
 | **Installable** | Removes `sharedUserId="android.uid.system"` and `persistent="true"` so it installs as a normal app (no root, no platform key), then re-signs it. |
 | **Adoptable** | On non-Viewpoint hardware the app advertises a blank identity and listens for UniFi discovery only on `eth0`. The patch advertises a valid Ubiquiti‑OUI MAC + the real firmware id/version (read from *your* firmware), switches discovery to `wlan0`, and holds a Wi‑Fi `MulticastLock` so the controller's discovery probe is actually received. |
 | **Fullscreen** | Hides the status/navigation bars (immersive, edge‑to‑edge). |
-| **Stays awake** | Screen never sleeps/locks while the viewer is open. |
+| **Screensaver** | After the app's idle timeout (default 60 s, set from the controller) the screen goes black at minimum brightness, like the Viewpoint's screen-off; a tap or a ring wakes it. `--sleep never` keeps the screen always on. See [Sleep](#sleep). |
 | **Full-screen layout** | Removes the 9:16 letterbox the app applies for the Viewpoint's screen, so the UI and the call view fill taller phone screens. |
-| **Backdrop** | With `--letterbox`, fills the bands around the 9:16 block with solid black (default), a dark gradient (`--gradient`), or nothing (`--no-gradient`). |
+| **Backdrop** | Solid black by default (AMOLED-friendly), a dark gradient (`--gradient`), or none (`--no-gradient`). With `--letterbox` it fills the bands around the 9:16 block. |
 
 All injected code is ordinary Android framework code written for this project.
 Identity values come from your firmware at run time — nothing vendor‑specific is
@@ -75,6 +75,7 @@ Useful flags:
 | `--gradient` | Use the dark gradient backdrop instead of the default solid black. |
 | `--black-backdrop` | Force the solid-black backdrop (this is the default; pixels stay off on AMOLED). |
 | `--no-gradient` | Apply no backdrop at all; leave the app's original (black) background. |
+| `--sleep never` | Keep the screen on instead of the black screensaver (default: `--sleep screensaver`). |
 | `--letterbox` | Keep the original centered 9:16 layout instead of filling the screen (see [Known limitation](#known-limitation)). |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
 
@@ -116,6 +117,24 @@ VLANs or survive Wi‑Fi client isolation.
 
 Whether adoption *completes* can depend on controller/cloud‑side validation that
 isn't in the app; a self‑hosted console on the same L2 is the most reliable case.
+
+## Sleep
+
+The Viewpoint turns its screen off after the app's idle timeout (default 60 s,
+configurable from the controller) and wakes it for a ring, a remote view or
+"Locate"; a tap wakes it too. A normal app can't switch the screen off itself,
+so the patcher injects a small screensaver instead (`patcher/smali/Screensaver.smali`):
+
+- after the timeout, a full-screen black overlay at minimum brightness covers the
+  viewer; on AMOLED screens those pixels are off, so it's close to a real screen-off;
+- the first tap only wakes it and is swallowed, so it can't press unlock by accident;
+- the app's own wake-ups (incoming call, remote view, locate) wake it, and it stays
+  awake while the call view is showing.
+
+The app only applies its timeout on Viewpoint hardware (`Build.MODEL` check in
+`SettingManager.setScreenTimeout`); the patch skips that check so the
+screensaver follows the controller's setting. As on the Viewpoint, the app then
+also writes it to the phone's system screen timeout.
 
 ## Known limitation
 

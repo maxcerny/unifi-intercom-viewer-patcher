@@ -63,6 +63,16 @@ def _edit_method(path: str, method_name: str, old: str, new: str, what: str) -> 
     _write(path, text[:m.start()] + body + text[end:])
 
 
+def _inject_method_start(path: str, signature: str, code: str, what: str) -> None:
+    """Insert `code` right after the .locals line of the method whose
+    declaration ends with `signature` (e.g. "W(Z)V")."""
+    text = _read(path)
+    m = re.search(r"\.method[^\n]* " + re.escape(signature) + r"\n\s*\.locals \d+\n", text)
+    if not m:
+        raise PatchError(f"method not found: {what}")
+    _write(path, text[:m.end()] + "\n" + code + text[m.end():])
+
+
 # --- 1. Manifest: make it installable as a normal app ----------------------
 
 def patch_manifest(decoded: str) -> None:
@@ -153,13 +163,15 @@ def patch_multicast_lock(decoded: str) -> None:
 
 # --- 3. Device optimizations: keep screen on + immersive fullscreen --------
 
+MAIN_ONCREATE_SUPER = (
+    "    invoke-super {p0, p1}, Lcom/ui/da/viewer/app/Hilt_MainActivity;->"
+    "onCreate(Landroid/os/Bundle;)V\n"
+)
+
+
 def patch_screen(decoded: str) -> None:
     path = _find_smali(decoded, os.path.join("com", "ui", "da", "viewer", "app", "MainActivity.smali"))
     text = _read(path)
-    anchor = (
-        "    invoke-super {p0, p1}, Lcom/ui/da/viewer/app/Hilt_MainActivity;->"
-        "onCreate(Landroid/os/Bundle;)V\n"
-    )
     inject = (
         "\n    invoke-virtual {p0}, Landroid/app/Activity;->getWindow()Landroid/view/Window;\n\n"
         "    move-result-object v0\n\n"
@@ -187,7 +199,8 @@ def patch_screen(decoded: str) -> None:
         "    invoke-virtual {v1, v2}, Landroid/view/View;->setSystemUiVisibility(I)V\n\n"
         "    :uvp_done\n"
     )
-    text = _replace_once(text, anchor, anchor + inject, "MainActivity.onCreate super call")
+    text = _replace_once(text, MAIN_ONCREATE_SUPER, MAIN_ONCREATE_SUPER + inject,
+                         "MainActivity.onCreate super call")
     _write(path, text)
 
 
@@ -250,3 +263,85 @@ def patch_fullscreen_layout(decoded: str) -> None:
     main = _find_smali(decoded, os.path.join("com", "ui", "da", "viewer", "app", "MainActivity.smali"))
     _edit_method(main, "x1", "div-int/lit8 v1, v1, 0x2", "const/4 v1, 0x0",
                  "MainActivity.x1 letterbox padding")
+# --- 6. Sleep: black screensaver after the app's idle timeout -------------
+
+SLEEP_MODES = ("screensaver", "never")
+
+SCREENSAVER_SMALI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "smali", "Screensaver.smali")
+
+DISPATCH_TOUCH = """
+.method public dispatchTouchEvent(Landroid/view/MotionEvent;)Z
+    .locals 1
+
+    invoke-static {p1}, Lcom/uvp/Screensaver;->onTouch(Landroid/view/MotionEvent;)Z
+
+    move-result v0
+
+    if-eqz v0, :uvp_pass
+
+    return v0
+
+    :uvp_pass
+    invoke-super {p0, p1}, Lcom/ui/da/viewer/app/Hilt_MainActivity;->dispatchTouchEvent(Landroid/view/MotionEvent;)Z
+
+    move-result v0
+
+    return v0
+.end method
+"""
+
+
+def patch_sleep(decoded: str, mode: str) -> None:
+    """The Viewpoint turns its screen off after the app's timeout (default 60 s,
+    set from the controller) via Settings.System screen_off_timeout and
+    PowerManager.goToSleep; on a phone the screen is kept on instead.
+
+    screensaver: inject com.uvp.Screensaver, a black overlay at minimum
+                 brightness that the first touch dismisses (AMOLED pixels off).
+    never:       screen stays on (patch_screen's keep-on flag).
+    """
+    if mode not in SLEEP_MODES:
+        raise PatchError(f"unknown sleep mode: {mode}")
+    if mode == "never":
+        return
+
+    app = os.path.join("com", "ui", "da", "viewer", "app")
+    settings = _find_smali(decoded, os.path.join(app, "cmpts", "SettingManager.smali"))
+
+    # setScreenTimeout returns early unless Build.MODEL is the Viewpoint's
+    # (t2.c() = "not a Viewpoint"); jump past that check so the timeout applies
+    _edit_method(settings, "setScreenTimeout", "if-eqz v1, :cond_0", "goto :cond_0",
+                 "SettingManager.setScreenTimeout Viewpoint check")
+
+    # drop the class into the last (smallest) dex so no dex nears its method limit
+    smali_root = sorted(glob.glob(os.path.join(decoded, "smali*")))[-1]
+    dest = os.path.join(smali_root, "com", "uvp", "Screensaver.smali")
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    _write(dest, _read(SCREENSAVER_SMALI))
+
+    # attach the overlay once the activity exists, and route every touch through it
+    main = _find_smali(decoded, os.path.join(app, "MainActivity.smali"))
+    text = _read(main)
+    if "dispatchTouchEvent(" in text:
+        raise PatchError("anchor not found: MainActivity already overrides dispatchTouchEvent")
+    attach = "\n    invoke-static {p0}, Lcom/uvp/Screensaver;->attach(Landroid/app/Activity;)V\n"
+    text = _replace_once(text, MAIN_ONCREATE_SUPER, MAIN_ONCREATE_SUPER + attach,
+                         "MainActivity.onCreate super call")
+    _write(main, text.rstrip("\n") + "\n" + DISPATCH_TOUCH)
+
+    # follow the app's screen timeout: setScreenTimeout computes `seconds * 1000`
+    # in p1 before writing screen_off_timeout (runs at startup and on controller changes)
+    _edit_method(settings, "setScreenTimeout", "mul-int/lit16 p1, p1, 0x3e8",
+                 "mul-int/lit16 p1, p1, 0x3e8\n\n"
+                 "    invoke-static {p1}, Lcom/uvp/Screensaver;->setTimeoutMs(I)V",
+                 "SettingManager.setScreenTimeout")
+    # the app's own wake-ups (incoming call, locate, remote view, OTA) wake the overlay
+    _inject_method_start(settings, "wakeup(Ljava/lang/String;Ljava/lang/Long;)V",
+                         "    invoke-static {}, Lcom/uvp/Screensaver;->poke()V\n",
+                         "SettingManager.wakeup")
+
+    # RtcViewContainer.W(show) shows/hides the call view: stay awake while it's up
+    rtc = _find_smali(decoded, os.path.join(app, "RtcViewContainer.smali"))
+    _inject_method_start(rtc, "W(Z)V",
+                         "    invoke-static {p1}, Lcom/uvp/Screensaver;->setBusy(Z)V\n",
+                         "RtcViewContainer.W call view visibility")
