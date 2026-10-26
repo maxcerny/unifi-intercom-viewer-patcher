@@ -66,6 +66,8 @@ def main() -> int:
                     help="skip fullscreen / keep-screen-on / gradient patches")
     ap.add_argument("--black-backdrop", action="store_true",
                     help="fill the letterbox with pure black instead of the gradient (AMOLED)")
+    ap.add_argument("--no-gradient", action="store_true",
+                    help="don't apply any backdrop; leave the app's original (black) background")
     ap.add_argument("--letterbox", action="store_true",
                     help="keep the original centered 9:16 layout instead of filling the screen")
     ap.add_argument("--keep-work", action="store_true", help="keep the temp work dir")
@@ -141,9 +143,12 @@ def main() -> int:
 
         if not args.no_optimize:
             patches.patch_screen(decoded)
-            patches.patch_gradient(decoded, black=args.black_backdrop)
-            backdrop = "black" if args.black_backdrop else "gradient"
-            log(f"  + fullscreen + keep-screen-on + {backdrop} background")
+            if args.no_gradient:
+                log("  + fullscreen + keep-screen-on (no backdrop)")
+            else:
+                patches.patch_gradient(decoded, black=args.black_backdrop)
+                backdrop = "black" if args.black_backdrop else "gradient"
+                log(f"  + fullscreen + keep-screen-on + {backdrop} background")
 
         if not args.letterbox:
             patches.patch_fullscreen_layout(decoded)

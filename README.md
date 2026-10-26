@@ -73,6 +73,7 @@ Useful flags:
 | `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
 | `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
 | `--black-backdrop` | Fill the letterbox with pure black instead of the gradient (pixels stay off on AMOLED). |
+| `--no-gradient` | Apply no backdrop at all; leave the app's original (black) background. |
 | `--letterbox` | Keep the original centered 9:16 layout instead of filling the screen (see [Known limitation](#known-limitation)). |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
 
