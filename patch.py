@@ -66,6 +66,8 @@ def main() -> int:
                     help="skip fullscreen / keep-screen-on / gradient patches")
     ap.add_argument("--black-backdrop", action="store_true",
                     help="fill the letterbox with pure black instead of the gradient (AMOLED)")
+    ap.add_argument("--letterbox", action="store_true",
+                    help="keep the original centered 9:16 layout instead of filling the screen")
     ap.add_argument("--keep-work", action="store_true", help="keep the temp work dir")
     ap.add_argument("--work", default=None, help="work directory (default: a temp dir)")
     args = ap.parse_args()
@@ -142,6 +144,10 @@ def main() -> int:
             patches.patch_gradient(decoded, black=args.black_backdrop)
             backdrop = "black" if args.black_backdrop else "gradient"
             log(f"  + fullscreen + keep-screen-on + {backdrop} background")
+
+        if not args.letterbox:
+            patches.patch_fullscreen_layout(decoded)
+            log("  + full-screen layout (no 9:16 letterbox)")
 
         log("rebuilding APK (apktool)")
         unsigned = os.path.join(work, "viewer-unsigned.apk")
