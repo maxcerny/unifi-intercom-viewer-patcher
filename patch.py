@@ -64,8 +64,10 @@ def main() -> int:
                     help="skip the discovery/adoption identity patches")
     ap.add_argument("--no-optimize", action="store_true",
                     help="skip fullscreen / keep-screen-on / gradient patches")
+    ap.add_argument("--gradient", action="store_true",
+                    help="use the dark gradient backdrop instead of the default black")
     ap.add_argument("--black-backdrop", action="store_true",
-                    help="fill the letterbox with pure black instead of the gradient (AMOLED)")
+                    help="force the solid-black backdrop (this is the default)")
     ap.add_argument("--no-gradient", action="store_true",
                     help="don't apply any backdrop; leave the app's original (black) background")
     ap.add_argument("--letterbox", action="store_true",
@@ -146,8 +148,9 @@ def main() -> int:
             if args.no_gradient:
                 log("  + fullscreen + keep-screen-on (no backdrop)")
             else:
-                patches.patch_gradient(decoded, black=args.black_backdrop)
-                backdrop = "black" if args.black_backdrop else "gradient"
+                use_gradient = args.gradient and not args.black_backdrop
+                patches.patch_gradient(decoded, black=not use_gradient)
+                backdrop = "gradient" if use_gradient else "black"
                 log(f"  + fullscreen + keep-screen-on + {backdrop} background")
 
         if not args.letterbox:

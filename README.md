@@ -29,7 +29,7 @@ Runs on **Debian/Linux, Windows, and macOS**.
 | **Fullscreen** | Hides the status/navigation bars (immersive, edge‑to‑edge). |
 | **Stays awake** | Screen never sleeps/locks while the viewer is open. |
 | **Full-screen layout** | Removes the 9:16 letterbox the app applies for the Viewpoint's screen, so the UI and the call view fill taller phone screens. |
-| **Gradient backdrop** | With `--letterbox`, fills the bands around the 9:16 block with a dark gradient instead of black bars. |
+| **Backdrop** | With `--letterbox`, fills the bands around the 9:16 block with solid black (default), a dark gradient (`--gradient`), or nothing (`--no-gradient`). |
 
 All injected code is ordinary Android framework code written for this project.
 Identity values come from your firmware at run time — nothing vendor‑specific is
@@ -72,7 +72,8 @@ Useful flags:
 | `--keystore path.keystore` | Reuse a keystore so later versions install over the old one **without wiping adoption** (`adb install -r`). A throwaway one is generated if omitted. |
 | `--no-adopt` | Install/run only; skip the discovery/adoption identity patches. |
 | `--no-optimize` | Skip the fullscreen / keep‑awake / gradient patches. |
-| `--black-backdrop` | Fill the letterbox with pure black instead of the gradient (pixels stay off on AMOLED). |
+| `--gradient` | Use the dark gradient backdrop instead of the default solid black. |
+| `--black-backdrop` | Force the solid-black backdrop (this is the default; pixels stay off on AMOLED). |
 | `--no-gradient` | Apply no backdrop at all; leave the app's original (black) background. |
 | `--letterbox` | Keep the original centered 9:16 layout instead of filling the screen (see [Known limitation](#known-limitation)). |
 | `--keep-work` | Keep the temp dir (extracted image, decoded APK, logs) for inspection. |
@@ -126,7 +127,7 @@ call view by `(height - width / 9 * 16) / 2` at the top and bottom.
 The patcher forces that padding to 0, so on a taller phone the UI reaches the
 real screen edges. Tested on a 20:9 phone, including the live call view during a
 doorbell ring. Pass `--letterbox` to keep the original centered 9:16 block; the
-gradient backdrop then fills the bands around it.
+backdrop (solid black by default, or `--gradient`) then fills the bands around it.
 
 ## How it works
 
